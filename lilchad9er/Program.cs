@@ -25,18 +25,28 @@ namespace pgdemo
                     {
                         using (BinaryReader reader = new BinaryReader(ns,Encoding.UTF8, leaveOpen: true))
                         {
-                            int len = reader.Read7BitEncodedInt(); // liest die länge des aufkommenden bytearrays aus
-                            var firstread = reader.ReadBytes(len); // liest bytearray aus 
-                            string USERNAME = Encoding.UTF8.GetString(firstread); //Konvertiert bytearray zu string
+                            Task<string> usernamereader = Task.Run(() =>
+                            {
+                                int len = reader.Read7BitEncodedInt(); // liest die länge des aufkommenden bytearrays aus
+                                var firstread = reader.ReadBytes(len); // liest bytearray aus 
+                                string USERNAME = Encoding.UTF8.GetString(firstread); //Konvertiert bytearray zu string
 
 
-                            int secondlen = reader.Read7BitEncodedInt();  // ,,___,,____,, repeat
-                            var secondread = reader.ReadBytes(secondlen);
-                            string PASSPHRASE = Encoding.UTF8.GetString(secondread);
+                                
+                                return USERNAME;
+                            });
 
+                            Task<string> passphrasereader = usernamereader.ContinueWith((f)=> 
+                            {
+                                int secondlen = reader.Read7BitEncodedInt();  // ,,___,,____,, repeat
+                                var secondread = reader.ReadBytes(secondlen);
+                                string PASSPHRASE = Encoding.UTF8.GetString(secondread);
+                                return PASSPHRASE;
+                            });
 
+                            passphrasereader.Wait();
 
-                            Console.WriteLine("Username: " + USERNAME + " - " + "Password: " + PASSPHRASE) ;
+                            Console.WriteLine("Username: " + usernamereader.Result + " - " + "Password: " + passphrasereader.Result);
 
                         }
 
