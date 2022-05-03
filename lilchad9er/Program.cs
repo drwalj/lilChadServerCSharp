@@ -12,10 +12,10 @@ namespace pgdemo
     {
         static void Main(string[] args)
         {
-            IPAddress ip = IPAddress.Parse("192.168.0.87");
+            IPAddress ip = IPAddress.Parse("172.16.36.242");
             TcpListener listener = new TcpListener(ip, 7755);
             listener.Start();
-            Console.WriteLine("servir startird!\n");
+            Console.WriteLine("Server started...\n");
 
             while (true)
             {
@@ -23,7 +23,7 @@ namespace pgdemo
                 {
                     using (NetworkStream ns = client.GetStream())
                     {
-                        using (BinaryReader reader = new BinaryReader(ns))
+                        using (BinaryReader reader = new BinaryReader(ns,Encoding.UTF8, leaveOpen: true))
                         {
                             int len = reader.Read7BitEncodedInt(); // liest die länge des aufkommenden bytearrays aus
                             var firstread = reader.ReadBytes(len); // liest bytearray aus 
@@ -36,10 +36,18 @@ namespace pgdemo
 
 
 
-                            Console.WriteLine(PASSPHRASE + " - " + USERNAME ) ;
+                            Console.WriteLine("Username: " + USERNAME + " - " + "Password: " + PASSPHRASE) ;
 
                         }
 
+                        ns.Flush();
+
+                        using (BinaryWriter writer = new BinaryWriter(ns))
+                        {
+                            string msgtosend = ""; // ------!!!! HIER ANGEBEN WAS GESENDET WERDEN SOLL
+                            writer.Write(Encoding.UTF8.GetBytes(msgtosend));
+                            Console.WriteLine("sent");
+                        }
                     }
                 }
 
