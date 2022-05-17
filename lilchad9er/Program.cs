@@ -2,7 +2,9 @@
 using System.IO;
 using System.Net;
 using System.Net.Sockets;
+using System.Runtime.InteropServices.ComTypes;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using Npgsql;
 
@@ -10,69 +12,58 @@ namespace pgdemo
 {
     class Program
     {
-        static void Main(string[] args)
+        static async Task Main(string[] args)
         {
-            IPAddress ip = IPAddress.Parse("172.16.36.242");
+            IPAddress ip = IPAddress.Parse("172.16.37.107");
             TcpListener listener = new TcpListener(ip, 7755);
             listener.Start();
             Console.WriteLine("Server started...\n");
 
             while (true)
             {
-                using (TcpClient client = listener.AcceptTcpClient())
+                TcpClient client = await listener.AcceptTcpClientAsync();
+
+                _ = Task.Factory.StartNew(async (object outerc) =>
                 {
-                    using (NetworkStream ns = client.GetStream())
+                    TcpClient innerclient = (TcpClient)outerc;
+                    NetworkStream ns = innerclient.GetStream();
+                    byte[] buffer = new byte[512];
+                    int res = await ns.ReadAsync(buffer, 0, buffer.Length);
+                    string USERNAME = "empt usrn";
+                    string PASSPHRASE = "empt pw";
+                    Console.WriteLine("buffer: ");
+                    
+                    /* FÜR DEBUG PURPOSES:
+                    foreach (byte b in buffer)
                     {
-                        using (BinaryReader reader = new BinaryReader(ns,Encoding.UTF8, leaveOpen: true))
-                        {
-                            Task<string> usernamereader = Task.Run(() =>
-                            {
-                                int len = reader.Read7BitEncodedInt(); // liest die länge des aufkommenden bytearrays aus
-                                var firstread = reader.ReadBytes(len); // liest bytearray aus 
-                                string USERNAME = Encoding.UTF8.GetString(firstread); //Konvertiert bytearray zu string
+                        Console.WriteLine(b.ToString());
+                    }*/
 
+                    string handleddata = Encoding.UTF8.GetString(buffer, 0, res);
+                    
+                    var splitdata = handleddata.Split(';');
+                    USERNAME = splitdata[0];
+                    PASSPHRASE = splitdata[1];
+                    Console.WriteLine("Username: " + USERNAME + " - " + "Password: " + PASSPHRASE);
 
-                                
-                                return USERNAME;
-                            });
-
-                            Task<string> passphrasereader = usernamereader.ContinueWith((f)=> 
-                            {
-                                int secondlen = reader.Read7BitEncodedInt();  // ,,___,,____,, repeat
-                                var secondread = reader.ReadBytes(secondlen);
-                                string PASSPHRASE = Encoding.UTF8.GetString(secondread);
-                                return PASSPHRASE;
-                            });
-
-                            passphrasereader.Wait();
-
-                            Console.WriteLine("Username: " + usernamereader.Result + " - " + "Password: " + passphrasereader.Result);
-
-                        }
-
-                        ns.Flush();
-
-                        using (BinaryWriter writer = new BinaryWriter(ns))
-                        {
-                            string msgtosend = ""; // ------!!!! HIER ANGEBEN WAS GESENDET WERDEN SOLL
-                            writer.Write(Encoding.UTF8.GetBytes(msgtosend));
-                            Console.WriteLine("sent");
-                        }
+                    using (BinaryWriter writer = new BinaryWriter(ns))
+                    {
+                        string msgtosend = "Hello from the server! +*-123"; // ------!!!! HIER ANGEBEN WAS GESENDET WERDEN SOLL
+                        writer.Write(Encoding.UTF8.GetBytes(msgtosend));
+                        Console.WriteLine("sent");
                     }
-                }
+
+                }, client);
 
             }
 
-
         }
 
-
-        // use UTF8 in this sample:
-        private static void registrieren(string name, string passwort, double gewicht, double groesse, string pet_name)
-        {
-            using (NpgsqlConnection con = GetConnection())
+            public static void registrieren(string name, string passwort, double gewicht, double groesse, string pet_name)
             {
-                
+                using (NpgsqlConnection con = GetConnection())
+                {
+                    
 
 
                 var cmd = new NpgsqlCommand("INSERT INTO users (name,passwort,gewicht,groesse,pet_name) VALUES (@p1, @p2,@p3, @p4,@p5)", con)
