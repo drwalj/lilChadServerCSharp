@@ -32,7 +32,7 @@ namespace pgdemo
                     string USERNAME = "empt usrn";
                     string PASSPHRASE = "empt pw";
                     Console.WriteLine("buffer: ");
-                    
+
                     /* FÜR DEBUG PURPOSES:
                     foreach (byte b in buffer)
                     {
@@ -40,7 +40,7 @@ namespace pgdemo
                     }*/
 
                     string handleddata = Encoding.UTF8.GetString(buffer, 0, res);
-                    
+
                     var splitdata = handleddata.Split(';');
                     USERNAME = splitdata[0];
                     PASSPHRASE = splitdata[1];
@@ -53,17 +53,99 @@ namespace pgdemo
                         Console.WriteLine("sent");
                     }
 
+
+                    if (registrieren(USERNAME, PASSPHRASE, 50, 6.2, "susi"))//groesee gewicht usw. sind testdaten. dass alles muss man von app holen.
+                    {
+                        var id = getidname(USERNAME);
+
+                        //app sagen es geht und dann id zurück schicken.
+                    }
+                    else
+                    {
+                        //fehler : app sagen es geht net
+                    }
+
+
+                    trainingadd(new DateTime(2021, 4, 5), "lifting", 40, 5, 10,//app schickt id );
+
+
+                    //wenn user sich einloggt dann
+
+                    if (checklogin(USERNAME, PASSPHRASE))
+                    {
+                        //User wurde gefunden. App sagen es passt.
+                    }
+                    else
+                    {
+                        //fehler : app sagen user gibt es nicht
+                    }
+
+
                 }, client);
 
             }
 
         }
 
-            public static void registrieren(string name, string passwort, double gewicht, double groesse, string pet_name)
+        private static int getidname(string name)
+        {
+
+            using (NpgsqlConnection con = GetConnection())
             {
-                using (NpgsqlConnection con = GetConnection())
+
+                var cmd = new NpgsqlCommand("SELECT user_id FROM users WHERE name = @p2  LIMIT 1;", con)
                 {
-                    
+                    Parameters =
+                    {
+                        new("p2", name)
+                    }
+                };
+
+                con.Open();
+                int n = cmd.ExecuteNonQuery();
+                Console.WriteLine(cmd.Parameters[0].Value);
+
+                NpgsqlDataReader dr = cmd.ExecuteReader();
+
+                dr.Read();
+
+                var result = dr.GetInt32(0);
+
+                return result;
+            }
+        }
+
+        private static void trainingadd(DateTime datum, string uebungsname, int gewicht, int sets, int reps, int userid)
+        {
+            using (NpgsqlConnection con = GetConnection())
+            {
+
+                var cmd = new NpgsqlCommand("INSERT INTO training (datum,uebungsname,gewicht,sets,reps,user_id) VALUES (@p1, @p2,@p3, @p4,@p5,@p6)", con)
+                {
+                    Parameters =
+                    {
+                        new("p1", datum),
+                        new("p2", uebungsname),
+                        new("p3", gewicht),
+                        new("p4", sets),
+                        new("p5", reps),
+                        new("p6", userid)
+                    }
+                };
+                con.Open();
+                int n = cmd.ExecuteNonQuery();
+                if (n == 1)
+                {
+                    Console.WriteLine("Insert ist erfolgreich :)");
+                }
+            }
+        }
+
+        public static bool registrieren(string name, string passwort, double gewicht, double groesse, string pet_name)
+        {
+            using (NpgsqlConnection con = GetConnection())
+            {
+
 
 
                 var cmd = new NpgsqlCommand("INSERT INTO users (name,passwort,gewicht,groesse,pet_name) VALUES (@p1, @p2,@p3, @p4,@p5)", con)
@@ -75,7 +157,7 @@ namespace pgdemo
                         new("p3", gewicht),
                         new("p4", groesse),
                         new("p5", pet_name)
-              
+
 
 
                     }
@@ -89,7 +171,11 @@ namespace pgdemo
 
                 if (n == 1)
                 {
-                    Console.WriteLine("Insert ist erfolgreich :)");
+                    return true;
+                }
+                else
+                {
+                    return false;
                 }
 
             }
@@ -97,10 +183,44 @@ namespace pgdemo
 
 
 
-        private static void checklogin(string name, string passwort)
+        private static bool checklogin(string name, string passwort)
         {
+            int verifer = 0;
             using (NpgsqlConnection con = GetConnection())
             {
+
+                var cmd1 = new NpgsqlCommand("SELECT COUNT(*) FROM users WHERE name = @p2  LIMIT 1;", con)
+                {
+                    Parameters =
+                    {
+                        new("p2", name),
+                    }
+                };
+
+                con.Open();
+                int n1 = cmd1.ExecuteNonQuery();
+
+
+                object obj1 = cmd1.ExecuteScalar();
+                if (Convert.ToInt32(obj1) > 0)
+                {
+                    Console.WriteLine("´Name wurde gefunden!!");
+                    verifer = verifer + 1;
+                }
+                else
+                {
+                    Console.WriteLine("Name wurde nicht gefunden!");
+
+                }
+
+                if (n1 == 1)
+                {
+                    Console.WriteLine("Check Name Befehl erfolgreich ausgeführt");
+
+                }
+
+
+
 
                 var cmd = new NpgsqlCommand("SELECT COUNT(*) FROM users WHERE passwort = @p2  LIMIT 1;", con)
                 {
@@ -110,61 +230,38 @@ namespace pgdemo
                     }
                 };
 
-                con.Open();
+
                 int n = cmd.ExecuteNonQuery();
+
 
 
                 object obj = cmd.ExecuteScalar();
                 if (Convert.ToInt32(obj) > 0)
                 {
-                    Console.WriteLine("hab passwort gefunden gefunden");
+                    Console.WriteLine("Passwort wurde gefunden!!");
+                    verifer = verifer + 1;
                 }
                 else
                 {
-                    Console.WriteLine("hab  passwd nicht gefunden");
+                    Console.WriteLine("Passwort wurde nicht gefunden!");
+
                 }
-
-
 
                 if (n == 1)
                 {
-                    Console.WriteLine("Insert ist erfolgreich :)");
+                    Console.WriteLine("Check password Befehl erfolgreich ausgeführt");
                 }
 
-            }
 
-            using (NpgsqlConnection con = GetConnection())
-            {
-
-                var cmd2 = new NpgsqlCommand("SELECT COUNT(*) FROM users WHERE name = @p1  LIMIT 1;", con)
+                if (verifer == 2)
                 {
-                    Parameters =
-                    {
-                        new("p1", name),
-
-                    }
-                };
-
-                con.Open();
-                int n = cmd2.ExecuteNonQuery();
-
-                object obj = cmd2.ExecuteScalar();
-                if (Convert.ToInt32(obj) > 0)
-                {
-                    Console.WriteLine("hab name gefunden gefunden");
+                    return true;
                 }
+
                 else
                 {
-                    Console.WriteLine("hab  name nicht gefunden");
+                    return false;
                 }
-
-
-
-                if (n == 1)
-                {
-                    Console.WriteLine("Insert ist erfolgreich :)");
-                }
-
             }
         }
 
