@@ -29,7 +29,69 @@ namespace pgdemo
                     NetworkStream ns = innerclient.GetStream();
                     string[] recievedMessage = await RecieveFromAppAsync(ns);
 
-                    bool sendchecker = SendToApp("message", ns);
+                    SendToApp("message", ns);
+
+
+                    if (recievedMessage[0] == "register")
+                    {
+                        string replay;
+                        if (registrieren(recievedMessage[1], recievedMessage[2]))
+                        {
+                            int userid = getidname(recievedMessage[1]);
+
+                            string useridstr = Convert.ToString(userid);
+
+                            /* drwal sende*/
+                            replay = $"true;{useridstr}";
+                            SendToApp(replay, ns);
+                        }
+                        else
+                        {
+                            SendToApp("false;0", ns);
+                        }
+                    }
+
+                    if (recievedMessage[0]== "login")
+                    {
+                        
+
+                        if(checklogin(recievedMessage[1], recievedMessage[2]))
+                        {
+                            string replay = login(recievedMessage[1]);
+
+
+                            SendToApp(replay, ns);
+
+                        }
+                        else
+                        {
+                            SendToApp("false;0", ns);
+                        }
+
+                        
+                    }
+
+                    if (recievedMessage[0] == "saveuser")
+                    {
+                        //Hamed dings neue methode erstellen. dass die daten von recievemessage[diese kack numemrn] in datenbank speichert
+
+                        if (checklogin(recievedMessage[1], recievedMessage[2]))
+                        {
+                            string replay = login(recievedMessage[1]);
+
+
+                            SendToApp(replay, ns);
+
+                        }
+                        else
+                        {
+                            SendToApp("false;0", ns);
+                        }
+
+
+                    }
+
+
 
                 }, client);
 
@@ -104,6 +166,40 @@ namespace pgdemo
             }
         }
 
+
+            private static string  login (string name)
+        {
+            string finaloutput = "f";
+            using (NpgsqlConnection con = GetConnection())
+            {
+
+                con.Open();
+                var cmd1 = new NpgsqlCommand("SELECT * FROM users WHERE name = @p2  LIMIT 1;", con)
+                {
+                    Parameters =
+                    {
+                        new("p2", name),
+                    }
+                };
+
+
+                var reader = cmd1.ExecuteReader();
+
+                while (reader.Read())
+                {
+                    string output = string.Format("{0} {1} {2} {3} {4} {5} {6}", reader.GetValue(5), reader.GetValue(6), reader.GetValue(7), reader.GetValue(1), reader.GetValue(4), reader.GetValue(3), reader.GetValue(8));
+
+                    string newoutput = output.Replace(' ',';');
+
+                    finaloutput =  "alldata;" + newoutput;
+                    
+                }
+                
+                return finaloutput;
+
+            }
+        }
+
         private static void trainingadd(DateTime datum, string uebungsname, int gewicht, int sets, int reps, int userid)
         {
             using (NpgsqlConnection con = GetConnection())
@@ -130,33 +226,26 @@ namespace pgdemo
             }
         }
 
-        public static bool registrieren(string name, string passwort, double gewicht, double groesse, string pet_name)
+        public static bool registrieren(string name, string passwort)
         {
             using (NpgsqlConnection con = GetConnection())
             {
 
 
 
-                var cmd = new NpgsqlCommand("INSERT INTO users (name,passwort,gewicht,groesse,pet_name) VALUES (@p1, @p2,@p3, @p4,@p5)", con)
+                var cmd = new NpgsqlCommand("INSERT INTO users (name,passwort) VALUES (@p1, @p2)", con)
                 {
                     Parameters =
                     {
                         new("p1", name),
                         new("p2", passwort),
-                        new("p3", gewicht),
-                        new("p4", groesse),
-                        new("p5", pet_name)
-
-
 
                     }
                 };
 
-
                 con.Open();
                 int n = cmd.ExecuteNonQuery();
                 // int n2 = cmd2.ExecuteNonQuery();
-
 
                 if (n == 1)
                 {
