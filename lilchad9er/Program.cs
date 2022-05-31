@@ -27,59 +27,9 @@ namespace pgdemo
                 {
                     TcpClient innerclient = (TcpClient)outerc;
                     NetworkStream ns = innerclient.GetStream();
-                    byte[] buffer = new byte[512];
-                    int res = await ns.ReadAsync(buffer, 0, buffer.Length);
-                    string USERNAME = "empt usrn";
-                    string PASSPHRASE = "empt pw";
-                    Console.WriteLine("buffer: ");
+                    string[] recievedMessage = await RecieveFromAppAsync(ns);
 
-                    /* FÜR DEBUG PURPOSES:
-                    foreach (byte b in buffer)
-                    {
-                        Console.WriteLine(b.ToString());
-                    }*/
-
-                    string handleddata = Encoding.UTF8.GetString(buffer, 0, res);
-
-                    var splitdata = handleddata.Split(';');
-                    USERNAME = splitdata[0];
-                    PASSPHRASE = splitdata[1];
-                    Console.WriteLine("Username: " + USERNAME + " - " + "Password: " + PASSPHRASE);
-
-                    using (BinaryWriter writer = new BinaryWriter(ns))
-                    {
-                        string msgtosend = "Hello from the server! +*-123"; // ------!!!! HIER ANGEBEN WAS GESENDET WERDEN SOLL
-                        writer.Write(Encoding.UTF8.GetBytes(msgtosend));
-                        Console.WriteLine("sent");
-                    }
-
-
-                    if (registrieren(USERNAME, PASSPHRASE, 50, 6.2, "susi"))//groesee gewicht usw. sind testdaten. dass alles muss man von app holen.
-                    {
-                        var id = getidname(USERNAME);
-
-                        //app sagen es geht und dann id zurück schicken.
-                    }
-                    else
-                    {
-                        //fehler : app sagen es geht net
-                    }
-
-
-                    trainingadd(new DateTime(2021, 4, 5), "lifting", 40, 5, 10,//app schickt id );
-
-
-                    //wenn user sich einloggt dann
-
-                    if (checklogin(USERNAME, PASSPHRASE))
-                    {
-                        //User wurde gefunden. App sagen es passt.
-                    }
-                    else
-                    {
-                        //fehler : app sagen user gibt es nicht
-                    }
-
+                    bool sendchecker = SendToApp("message", ns);
 
                 }, client);
 
@@ -87,9 +37,48 @@ namespace pgdemo
 
         }
 
+        private static bool SendToApp(string messageToSend,NetworkStream ns ) 
+        {
+            try
+            {
+                using (BinaryWriter writer = new BinaryWriter(ns))
+                {
+                    writer.Write(Encoding.UTF8.GetBytes(messageToSend));
+                    Console.WriteLine("SentToServer: " + messageToSend);
+                }
+                return true;
+
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+                throw;
+            }
+            
+        }
+
+        private async static Task<string[]> RecieveFromAppAsync(NetworkStream ns) //gibt schon gesplittetes array zurück
+        {
+            try
+            {
+                byte[] buffer = new byte[512];
+                int res = await ns.ReadAsync(buffer, 0, buffer.Length);
+                string handleddata = Encoding.UTF8.GetString(buffer, 0, res);
+                Console.WriteLine("Recieved Request:\n" + handleddata + "\n");
+                var recArray = handleddata.Split(';');
+                return recArray;
+
+
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+                throw;
+            }
+        }
+
         private static int getidname(string name)
         {
-
             using (NpgsqlConnection con = GetConnection())
             {
 
