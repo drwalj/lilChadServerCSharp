@@ -15,7 +15,7 @@ namespace pgdemo
         static async Task Main(string[] args)
         {
             IPAddress ip = IPAddress.Parse("172.16.37.107");
-            TcpListener listener = new TcpListener(ip, 7755);
+            TcpListener listener = new TcpListener(IPAddress.Loopback, 7755);
             listener.Start();
             Console.WriteLine("Server started...\n");
 
@@ -29,6 +29,7 @@ namespace pgdemo
                     NetworkStream ns = innerclient.GetStream();
                     string[] recievedMessage = await RecieveFromAppAsync(ns);
 
+                    
                     SendToApp("message", ns);
 
 
@@ -77,20 +78,23 @@ namespace pgdemo
 
 
                         int userid = Convert.ToInt32((string)recievedMessage[1]);
-                        int gewicht = Convert.ToInt32((string)recievedMessage[3]);
                         int groesse = Convert.ToInt32((string)recievedMessage[4]);
                         int alter = Convert.ToInt32((string)recievedMessage[5]);
 
+                        var vorherigegewichte = getpreviousweight(recievedMessage[2]);
 
-                        if(saveusermeth(userid, recievedMessage[2], gewicht, groesse, alter))
+
+                        var gewichtzuspeichern = vorherigegewichte + "," + recievedMessage[3];
+
+                        if (saveusermeth(userid, recievedMessage[2], gewichtzuspeichern, groesse, alter))
                         {
 
-                            SendToApp($"true",ns);
+                            SendToApp($"true", ns);
                         }
                         else
                         {
                             SendToApp("false;0", ns);
-                        }                     
+                        }
                     }
 
                     if (recievedMessage[0] == "setpetname")
@@ -98,12 +102,12 @@ namespace pgdemo
                         //Hamed dings neue methode erstellen. dass die daten von recievemessage[diese kack numemrn] in datenbank speichert
                         int userid = Convert.ToInt32((string)recievedMessage[1]);
 
-                        if(savepetname(userid, recievedMessage[2]))
+                        if (savepetname(userid, recievedMessage[2]))
                         {
                             SendToApp($"true", ns);
 
                         }
-                        
+
                         else
                         {
                             SendToApp("false;0", ns);
@@ -112,18 +116,18 @@ namespace pgdemo
 
                     if (recievedMessage[0] == "lvl")
                     {
-    
+
                         int userid = Convert.ToInt32((string)recievedMessage[1]);
                         int levelup = Convert.ToInt32((string)recievedMessage[2]);
-                        var currentpetlvl  = getcrurentpetlvl(userid);
+                        var currentpetlvl = getcrurentpetlvl(userid);
 
                         //ändere savepetname lol
 
 
-                        if(savepetlvl(userid, levelup, currentpetlvl))
+                        if (savepetlvl(userid, levelup, currentpetlvl))
                         {
                             SendToApp($"true", ns);
-                        }                      
+                        }
 
                         else
                         {
@@ -229,6 +233,39 @@ namespace pgdemo
         }
 
 
+        private static string getpreviousweight(string name)
+        {
+            string finaloutput = "f";
+            using (NpgsqlConnection con = GetConnection())
+            {
+
+                con.Open();
+                var cmd1 = new NpgsqlCommand("SELECT * FROM users WHERE name = @p2  LIMIT 1;", con)
+                {
+                    Parameters =
+                    {
+                        new("p2", name),
+                    }
+                };
+
+
+                var reader = cmd1.ExecuteReader();
+
+                while (reader.Read())
+                {
+                    string output = string.Format("{0}", reader.GetValue(3));
+
+                    string newoutput = output;
+
+                    finaloutput = newoutput;
+
+                }
+
+                return finaloutput;
+
+            }
+        }
+
         private static int getcrurentpetlvl(int userid)
         {
             using (NpgsqlConnection con = GetConnection())
@@ -303,9 +340,10 @@ namespace pgdemo
 
                 while (reader.Read())
                 {
-                    string output = string.Format("{0} {1} {2} {3} {4} {5} {6} {7}",reader.GetValue(0), reader.GetValue(5), reader.GetValue(6), reader.GetValue(7), reader.GetValue(1), reader.GetValue(4), reader.GetValue(3), reader.GetValue(8));
+                    string output = string.Format("{0} {1} {2} {3} {4} {5} {6} {7}", reader.GetValue(0), reader.GetValue(5), reader.GetValue(6), reader.GetValue(7), reader.GetValue(1), reader.GetValue(4), reader.GetValue(3), reader.GetValue(8));
 
                     string newoutput = output.Replace(' ', ';');
+
 
                     finaloutput = "alldata;" + newoutput;
 
@@ -345,11 +383,11 @@ namespace pgdemo
 
 
 
-        private static bool savepetlvl(int userid, int lvlup,int currentlvl)
+        private static bool savepetlvl(int userid, int lvlup, int currentlvl)
         {
 
             int geupdatetlvl = currentlvl + lvlup;
-            
+
             using (NpgsqlConnection con = GetConnection())
             {
 
@@ -427,7 +465,7 @@ namespace pgdemo
                 int n4 = cmd4.ExecuteNonQuery();
                 if (n4 == 1)
                 {
-               
+
                     Console.WriteLine("Insert ist erfolgreich :)");
                     return true;
                 }
@@ -440,7 +478,7 @@ namespace pgdemo
 
 
 
-        private static bool saveusermeth(int userid, string username, int weight, int size, int age)
+        private static bool saveusermeth(int userid, string username, string weight, int size, int age)
         {
             int verifirer = 0;
             using (NpgsqlConnection con = GetConnection())
@@ -472,7 +510,7 @@ namespace pgdemo
 
                     }
                 };
-                con.Open();
+
                 int n = cmd.ExecuteNonQuery();
                 if (n == 1)
                 {
@@ -492,7 +530,7 @@ namespace pgdemo
 
                     }
                 };
-                con.Open();
+
                 int n1 = cmd1.ExecuteNonQuery();
                 if (n1 == 1)
                 {
@@ -509,8 +547,8 @@ namespace pgdemo
 
                     }
                 };
-                con.Open();
-                int n3 = cmd1.ExecuteNonQuery();
+
+                int n3 = cmd3.ExecuteNonQuery();
                 if (n3 == 1)
                 {
                     verifirer += 1;
@@ -518,7 +556,7 @@ namespace pgdemo
                 }
 
 
-                if(verifirer == 4)
+                if (verifirer == 4)
                 {
                     return true;
                 }

@@ -10,21 +10,12 @@ namespace tcp_client_test
     {
         static void Main(string[] args)
         {
-            Console.WriteLine("Hello World!");
-            while (true)
-            {
-                Console.WriteLine("name: diego");
-                string a = Console.ReadLine();
+          
 
-                Console.WriteLine("pass: 123654");
-                string b = Console.ReadLine();
+                checktest();
 
-                checktest(a, b);
 
-                Thread.Sleep(1000);
-                Console.WriteLine("Next: \n");
-
-            }
+            
 
 
 
@@ -32,7 +23,7 @@ namespace tcp_client_test
         }
 
 
-        public static void checktest(string name, string passwort)
+        public static void checktest()
         {
 
             int port = 7755;
@@ -46,9 +37,10 @@ namespace tcp_client_test
                 {
                     using (StreamWriter writer = new StreamWriter(ns, leaveOpen: true))
                     {
-                        writer.Write(name.Length);
-                        writer.WriteLine(name);
-                        writer.WriteLine(passwort);
+
+                        string[] cars = { "register", "albertoderg", "123465"};
+                        writer.Write(cars);
+                
                       
 
 
@@ -62,3 +54,11 @@ namespace tcp_client_test
 
 
 }
+
+
+
+
+
+
+
+
