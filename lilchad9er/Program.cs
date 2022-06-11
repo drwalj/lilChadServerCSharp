@@ -303,7 +303,7 @@ namespace pgdemo
 
                 while (reader.Read())
                 {
-                    string output = string.Format("{0} {1} {2} {3} {4} {5} {6}", reader.GetValue(5), reader.GetValue(6), reader.GetValue(7), reader.GetValue(1), reader.GetValue(4), reader.GetValue(3), reader.GetValue(8));
+                    string output = string.Format("{0} {1} {2} {3} {4} {5} {6} {7}",reader.GetValue(0), reader.GetValue(5), reader.GetValue(6), reader.GetValue(7), reader.GetValue(1), reader.GetValue(4), reader.GetValue(3), reader.GetValue(8));
 
                     string newoutput = output.Replace(' ', ';');
 
