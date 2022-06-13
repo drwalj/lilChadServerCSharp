@@ -14,8 +14,8 @@ namespace pgdemo
     {
         static async Task Main(string[] args)
         {
-            IPAddress ip = IPAddress.Parse("172.16.37.107");
-            TcpListener listener = new TcpListener(IPAddress.Loopback, 7755);
+            IPAddress ip = IPAddress.Parse("192.168.0.87");
+            TcpListener listener = new TcpListener(ip, 7755);
             listener.Start();
             Console.WriteLine("Server started...\n");
 
@@ -28,9 +28,6 @@ namespace pgdemo
                     TcpClient innerclient = (TcpClient)outerc;
                     NetworkStream ns = innerclient.GetStream();
                     string[] recievedMessage = await RecieveFromAppAsync(ns);
-
-                    
-                    SendToApp("message", ns);
 
 
                     if (recievedMessage[0] == "register")
@@ -72,6 +69,8 @@ namespace pgdemo
 
                     }
 
+
+
                     if (recievedMessage[0] == "saveuser")
                     {
                         //Hamed dings neue methode erstellen. dass die daten von recievemessage[diese kack numemrn] in datenbank speichert
@@ -88,7 +87,6 @@ namespace pgdemo
 
                         if (saveusermeth(userid, recievedMessage[2], gewichtzuspeichern, groesse, alter))
                         {
-
                             SendToApp($"true", ns);
                         }
                         else
@@ -99,13 +97,11 @@ namespace pgdemo
 
                     if (recievedMessage[0] == "setpetname")
                     {
-                        //Hamed dings neue methode erstellen. dass die daten von recievemessage[diese kack numemrn] in datenbank speichert
                         int userid = Convert.ToInt32((string)recievedMessage[1]);
 
                         if (savepetname(userid, recievedMessage[2]))
                         {
                             SendToApp($"true", ns);
-
                         }
 
                         else
@@ -133,6 +129,8 @@ namespace pgdemo
                         {
                             SendToApp("false;0", ns);
                         }
+
+                        Console.WriteLine("Recieved request: " + recievedMessage);
                     }
 
 
@@ -145,7 +143,7 @@ namespace pgdemo
 
                         //ändere savepetname lol
 
-
+                        Console.WriteLine($"\nRecieved request: \n{recievedMessage}");
                         if (savepetxp(userid, xpup, currentpetxp))
                         {
                             SendToApp($"true", ns);
@@ -195,7 +193,6 @@ namespace pgdemo
                 Console.WriteLine("Recieved Request:\n" + handleddata + "\n");
                 var recArray = handleddata.Split(';');
                 return recArray;
-
 
             }
             catch (Exception e)
@@ -484,7 +481,7 @@ namespace pgdemo
             using (NpgsqlConnection con = GetConnection())
             {
 
-                var cmd4 = new NpgsqlCommand("UPDATE users SET name = @p2 WHERE user_id = @p1", con)
+                var cmd4 = new NpgsqlCommand("UPDATE users SET pet_name = @p2 WHERE user_id = @p1", con)
                 {
                     Parameters =
                     {
@@ -623,7 +620,7 @@ namespace pgdemo
                 object obj1 = cmd1.ExecuteScalar();
                 if (Convert.ToInt32(obj1) > 0)
                 {
-                    Console.WriteLine("´Name wurde gefunden!!");
+                    Console.WriteLine("Name wurde gefunden!!");
                     verifer = verifer + 1;
                 }
                 else
